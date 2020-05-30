@@ -132,7 +132,7 @@ def stats():
             round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
         ) + ' MB'
         folderID = JSONSTATS['folders'][item]['id']
-        print(f'├──{name} {size} ID={folderID}')
+        print(f'├──{name} {size}')
         folderContent(folderID)
 
 
