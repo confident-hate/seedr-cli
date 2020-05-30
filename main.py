@@ -28,7 +28,7 @@ searchString = args.search
 if os.path.isfile('cookie.txt'):
     with open('cookie.txt', 'r') as f:
         mycookie = f.read()
-        print(mycookie)
+        #print(mycookie)
 else:
     mycookie = ''
 headr = {
