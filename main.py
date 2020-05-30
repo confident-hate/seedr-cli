@@ -325,7 +325,7 @@ def loginCheck():
         if r.json()['result'] == 'login_required':
             #print("Let's grab new cookie via selelium :)")
             mycookie = mySelenium.call_me_niggas()
-            with open('.cookie', 'w') as f:
+            with open('cookie.txt', 'w') as f:
                 f.write(mycookie)
     except KeyError:
         pass
