@@ -17,6 +17,7 @@ def call_me_niggas():
                 name = item['name']
                 value = item['value']
                 dest += f'{name}={value};'
+            driver.close()
             return dest[:-1]
 
 
