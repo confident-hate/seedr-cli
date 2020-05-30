@@ -57,3 +57,4 @@ $ python main.py -S "string to be searched"
 View entire account details with shareable links in tree like structure:
 ```
 $ python main.py -s
+```
