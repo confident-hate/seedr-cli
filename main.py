@@ -85,7 +85,7 @@ def addTorrent(magnet):
         print('Added: ', r.json()['title'])
     except KeyError:
         out = r.json()
-        if out['result'] == 'queue_full_added_to_wishlist':
+        if out['result'] == 'not_enough_space_added_to_wishlist':
             print("Queue is full")
             print("Torrent Name:", out['wt']['title'], "(", round(
                 int(out['wt']['size']) / 1024 / 1024, 2), "MB )")
@@ -174,7 +174,7 @@ def activeTorrentProgress():
     r2 = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     # print(r2.json())
     if len(r2.json()['torrents']) == 0:
-        print("There are no active torrents.")
+        print("All downloads finished! there are no active torrents.")
     else:
         activeTorrents = r2.json()['torrents']
         for i in range(len(activeTorrents)):
