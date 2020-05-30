@@ -33,3 +33,27 @@ optional arguments:
   -d, --delete                                         delete a torrent
   
  ```
+ First you need to login your account. Run this command:
+ ```
+ $ python main.py
+ ```
+ 
+Adding a torrent via this:
+ ```
+ $ python main.py -a "magnet_link_goes_here"
+ $ python main.py -a "/path/to/torrent/file.torrent"
+ ```
+ 
+Delete a torrent:
+ ```
+ $ python main.py -d
+ ```
+
+To search torrents on 1337x.to, run this:
+```
+$ python main.py -S "string to be searched"
+```
+
+View entire account details with shareable links in tree like structure:
+```
+$ python main.py -s
