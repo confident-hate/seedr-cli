@@ -28,7 +28,7 @@ searchString = args.search
 if os.path.isfile('cookie.txt'):
     with open('cookie.txt', 'r') as f:
         mycookie = f.read()
-        #print(mycookie)
+        # print(mycookie)
 else:
     mycookie = ''
 headr = {
@@ -69,6 +69,7 @@ def magnetCheck(stringPassed):
 
 
 def addTorrent(magnet):
+    global torrent_title
     url = 'https://www.seedr.cc/actions.php'
     DATA = {
         'torrent_magnet': magnet,
@@ -82,7 +83,8 @@ def addTorrent(magnet):
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     print(r.status_code, r.reason)
     try:
-        print('Added: ', r.json()['title'])
+        torrent_title = r.json()['title']
+        print('Added: ', torrent_title)
     except KeyError:
         out = r.json()
         if out['result'] == 'not_enough_space_added_to_wishlist':
@@ -164,6 +166,23 @@ def newDelete():
         print("Something went wrong")
 
 
+def fetch_links_after_add():
+    url = 'https://www.seedr.cc/content.php'
+    PARAMS = {'action': 'list_contents'}
+    DATA = {
+        'content_type': 'folder',
+        'content_id': '0'
+    }
+    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    list = r.json()['folders']
+    for item in list:
+        name = item['name']
+        if name == torrent_title:
+            folderID = item['id']
+            print(f'├──{name}')
+            folderContent(folderID)
+
+
 def activeTorrentProgress():
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'list_contents'}
@@ -175,6 +194,7 @@ def activeTorrentProgress():
     # print(r2.json())
     if len(r2.json()['torrents']) == 0:
         print("All downloads finished! there are no active torrents.")
+        fetch_links_after_add()
     else:
         activeTorrents = r2.json()['torrents']
         for i in range(len(activeTorrents)):
@@ -198,8 +218,9 @@ def activeTorrentProgress():
                         leechers = d['stats']['leechers']
                         progressPercentage = d['progress']
                         if progressPercentage == 101:
-                            sys.stdout.write('\r{0} {1} {2} Q{3} S{4} L{5} Finished '.format(
+                            sys.stdout.write('\r{0} {1} {2} Q{3} S{4} L{5} Finished \n'.format(
                                 name, size, ddlRate, quality, seeders, leechers))
+                            fetch_links_after_add()
                             sys.exit(0)
                         else:
                             sys.stdout.write('\r{0} {1} {2} Q{3} S{4} L{5} {6}% '.format(
@@ -346,5 +367,3 @@ if searchString:
     magnetCheck(myTorrentSearch.search(searchString))
 if args.delete:
     newDelete()
-
-
