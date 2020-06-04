@@ -264,11 +264,13 @@ def folderContent(FID):
         # only display stuff greater than 1 MB
         if (round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)) > 1.0:
             sharedURL = fetchFileLink(fileID)
-            # Clickable link
-            text = "LINK"
-            target = sharedURL
             print(f'│  ├──{filename} {size}',
-                  f"\u001b]8;;{target}\u001b\\{text}\u001b]8;;\u001b\\")
+                  f'│  │  └──{sharedURL}', sep='\n')
+            # Clickable link
+            # text = "LINK"
+            # target = sharedURL
+            # print(f'│  ├──{filename} {size}',
+            #       f"\u001b]8;;{target}\u001b\\{text}\u001b]8;;\u001b\\")
 
 
 def fetchFileLink(fileid):
