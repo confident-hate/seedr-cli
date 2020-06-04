@@ -60,7 +60,7 @@ View entire account details with shareable links in tree like structure:
 $ python main.py -s
 ```
 
-Play with waitlist items:
+Play with wishlist items:
 ```
 $ python main.py -w
 ```
