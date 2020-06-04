@@ -20,6 +20,8 @@ parser.add_argument('-S', '--search', type=str,
                     help='find a torrent on 1337x.to')
 parser.add_argument('-d', '--delete', action='store_true',
                     help='delete a torrent')
+parser.add_argument('-w', '--wishlist', action='store_true',
+                    help='List items from the wishlist')
 
 args = parser.parse_args()
 magnet = args.add
@@ -136,6 +138,10 @@ def stats():
         folderID = JSONSTATS['folders'][item]['id']
         print(f'├──{name} {size}')
         folderContent(folderID)
+    print("\nChecking wishlist items: ")
+    getWishlistItemsList()
+    if len(wishlist_id_list) == 0:
+        print("Wishlist is empty")
 
 
 def newDelete():
@@ -288,7 +294,7 @@ def removeItemfromWaitlist(fileid):
 
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     if (r.json()['result']) is True:
-        print("File is removed from waitlist.")
+        print("File is removed from wishlist.")
 
 
 def DownloadTorrentFromWishlist(fileid):
@@ -300,10 +306,16 @@ def DownloadTorrentFromWishlist(fileid):
 
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.json()['result'] is True:
-        print("Torrent is added from waitlist")
+        print("Torrent is added from wishlist")
+        activeTorrentProgress()
+    if r.json()['result'] == 'not_enough_space_added_to_wishlist':
+        print("Error: There is not enough space.")
+    if r.json()['result'] == 'queue_full_added_to_wishlist':
+        print("Error: There are some active downloads going.")
 
 
 def getWishlistItemsList():
+    global wishlist_id_list
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'get_settings'}
     DATA = {
@@ -312,9 +324,10 @@ def getWishlistItemsList():
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.json()['result'] is True:
         wishlist = r.json()['account']['wishlist']
+        wishlist_id_list = []
         for item in range(len(wishlist)):
-            print(item + 1, ':', wishlist[item]['title'],
-                  "with id", wishlist[item]['id'])
+            print(str(item + 1).ljust(4), wishlist[item]['title'])
+            wishlist_id_list.append(wishlist[item]['id'])
 
 
 def deleteTorrent(folderid):
@@ -367,3 +380,22 @@ if searchString:
     magnetCheck(myTorrentSearch.search(searchString))
 if args.delete:
     newDelete()
+if args.wishlist:
+    getWishlistItemsList()
+    if len(wishlist_id_list) == 0:
+        print("Wishlist is empty. Exiting...\n")
+        sys.exit(0)
+    user_input = int(
+        input("Press 1) to delete, 2) to download, 3) to quit\n"))
+    if user_input == 1:
+        # code for deletion
+        wishlist_index = int(input("Enter index to delete\n")) - 1
+        removeItemfromWaitlist(wishlist_id_list[wishlist_index])
+    elif user_input == 2:
+        # code for download
+        wishlist_index = int(input("Enter index to download\n")) - 1
+        DownloadTorrentFromWishlist(wishlist_id_list[wishlist_index])
+    elif user_input == 3:
+        sys.exit(0)
+    else:
+        print("Invalid Input. Exiting...\n")
