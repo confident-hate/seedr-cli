@@ -23,7 +23,7 @@ $ git clone https://github.com/confident-hate/seedr-cli.git
 ```
 $ cd seedr-cli
 $ python main.py -h
-usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-d]
+usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-d] [-w]
 
 optional arguments:
   -h, --help                                             show this help message and exit
@@ -31,6 +31,7 @@ optional arguments:
   -a ADD, --add ADD                            add a magnet link or a torrent file path from disk
   -S SEARCH, --search SEARCH          find a torrent on 1337x.to
   -d, --delete                                         delete a torrent
+  -w, --wishlist                                      List items from the wishlist
   
  ```
  First you need to login your account. Run this command:
@@ -57,4 +58,9 @@ $ python main.py -S "string to be searched"
 View entire account details with shareable links in tree like structure:
 ```
 $ python main.py -s
+```
+
+Play with waitlist items:
+```
+$ python main.py -w
 ```
