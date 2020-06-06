@@ -7,8 +7,9 @@ import argparse
 import bencodepy
 import hashlib
 import base64
-import myTorrentSearch
+import x1337
 import mySelenium
+import rarbg
 
 parser = argparse.ArgumentParser(
     description='A little script for seedr.', epilog='Enjoy!')
@@ -18,14 +19,14 @@ parser.add_argument('-a', '--add', type=str,
                     help='add a magnet link or a torrent file path from disk')
 parser.add_argument('-S', '--search', type=str,
                     help='find a torrent on 1337x.to')
+parser.add_argument('-Sr', '--rarbg', '-SR', type=str,
+                    help='find a torrent on rarbg.to')
 parser.add_argument('-d', '--delete', action='store_true',
                     help='delete a torrent')
 parser.add_argument('-w', '--wishlist', action='store_true',
                     help='List items from the wishlist')
 
 args = parser.parse_args()
-magnet = args.add
-searchString = args.search
 
 if os.path.isfile('cookie.txt'):
     with open('cookie.txt', 'r') as f:
@@ -89,12 +90,13 @@ def addTorrent(magnet):
         print('Added: ', torrent_title)
     except KeyError:
         out = r.json()
-        if out['result'] == 'not_enough_space_added_to_wishlist':
+        print(out)
+        if out['result'] == 'not_enough_space_added_to_wishlist' or out['result'] == 'queue_full_added_to_wishlist':
             print("Queue is full")
             print("Torrent Name:", out['wt']['title'], "(", round(
                 int(out['wt']['size']) / 1024 / 1024, 2), "MB )")
             print("File id: ", out['wt']['id'], "is added to waitlist.")
-            # print(out['wt'])
+            sys.exit(0)
     activeTorrentProgress()
 
 
@@ -164,12 +166,23 @@ def newDelete():
         print(str(item + 1).ljust(4), name.ljust(80), size.center(12))
         folderID = TorrList[item]['id']
         folder_id_list.append(folderID)
-    input_index = int(input("Select torrent to delete...\n")) - 1
-    delete_this_id = str(folder_id_list[input_index])
-    if deleteTorrent(delete_this_id):
-        print("Deleted")
-    else:
-        print("Something went wrong")
+    while 1:
+        try:
+            input_index = int(input("Select torrent to delete...\n")) - 1
+            if input_index > 0 and input_index < len(folder_id_list):
+                delete_this_id = str(folder_id_list[input_index])
+                if deleteTorrent(delete_this_id):
+                    print("Deleted")
+                else:
+                    print("Something went wrong")
+                break
+            else:
+                print("Invlid input")
+        except ValueError:
+            print("Invlid input")
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            sys.exit(0)
 
 
 def fetch_links_after_add():
@@ -339,8 +352,6 @@ def deleteTorrent(folderid):
         'delete_arr': "[{\"type\":\"folder\",\"id\":\""+folderid+"\"}]"
     }
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
-    # print(r.url)
-    # print(r.json())
     if r.status_code == 200:
         return True
     else:
@@ -359,7 +370,6 @@ def loginCheck():
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     try:
         if r.json()['result'] == 'login_required':
-            #print("Let's grab new cookie via selelium :)")
             mycookie = mySelenium.call_me_niggas()
             with open('cookie.txt', 'w') as f:
                 f.write(mycookie)
@@ -376,10 +386,12 @@ def loginCheck():
 loginCheck()
 if args.stats:
     stats()
-if magnet:
-    magnetCheck(magnet)
-if searchString:
-    magnetCheck(myTorrentSearch.search(searchString))
+if args.add:
+    magnetCheck(args.add)
+if args.search:
+    magnetCheck(x1337.search(args.search))
+if args.rarbg:
+    magnetCheck(rarbg.initial(args.rarbg))
 if args.delete:
     newDelete()
 if args.wishlist:
@@ -387,17 +399,24 @@ if args.wishlist:
     if len(wishlist_id_list) == 0:
         print("Wishlist is empty. Exiting...\n")
         sys.exit(0)
-    user_input = int(
-        input("Press 1) to delete, 2) to download, 3) to quit\n"))
-    if user_input == 1:
-        # code for deletion
-        wishlist_index = int(input("Enter index to delete\n")) - 1
-        removeItemfromWaitlist(wishlist_id_list[wishlist_index])
-    elif user_input == 2:
-        # code for download
-        wishlist_index = int(input("Enter index to download\n")) - 1
-        DownloadTorrentFromWishlist(wishlist_id_list[wishlist_index])
-    elif user_input == 3:
-        sys.exit(0)
-    else:
-        print("Invalid Input. Exiting...\n")
+    while 1:
+        try:
+            user_input = int(
+                input("Press 1) to delete, 2) to download, 3) to quit\n"))
+            if user_input == 1:
+                # code for deletion
+                wishlist_index = int(input("Enter index to delete\n")) - 1
+                removeItemfromWaitlist(wishlist_id_list[wishlist_index])
+            elif user_input == 2:
+                # code for download
+                wishlist_index = int(input("Enter index to download\n")) - 1
+                DownloadTorrentFromWishlist(wishlist_id_list[wishlist_index])
+            elif user_input == 3:
+                sys.exit(0)
+            else:
+                print("Invalid Input.")
+        except ValueError:
+            print("Invlid input")
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            sys.exit(0)

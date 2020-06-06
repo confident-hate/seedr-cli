@@ -10,28 +10,39 @@ A tool to ease tasks on seedr.cc
 Clone the repository
 ```bash
 $ git clone https://github.com/confident-hate/seedr-cli.git
+$ cd seedr-cli
+$ pip install -r requirements.txt 
 ```
+Also you need to install firefox web browser on your machine.
 
 ## Features
   * Add/Delete torrents 
   * Support for both magnet link and torrent file
   * Full stats in tree like structure (upto 1 level deep)
   * Search torrents via 1337x.to
+  * Search torrents via RARBG
   
 ## Usage
 
 ```
-$ cd seedr-cli
 $ python main.py -h
-usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-d] [-w]
+usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-Sr RARBG] [-d] [-w]
 
 optional arguments:
-  -h, --help                                             show this help message and exit
-  -s, --stats                                            display full stats of seedr account
-  -a ADD, --add ADD                            add a magnet link or a torrent file path from disk
-  -S SEARCH, --search SEARCH          find a torrent on 1337x.to
-  -d, --delete                                         delete a torrent
-  -w, --wishlist                                      List items from the wishlist
+  -h, --help  
+                     show this help message and exit
+  -s, --stats                                           
+                    display full stats of seedr account
+  -a ADD, --add ADD                            
+                    add a magnet link or a torrent file path from disk
+  -S SEARCH, --search SEARCH          
+                    find a torrent on 1337x.to
+  -Sr RARBG, --rarbg RARBG, -SR RARBG
+                    find a torrent on rarbg.to
+  -d, --delete 
+                    delete a torrent
+  -w, --wishlist
+                    list items from the wishlist
   
  ```
  First you need to login your account. Run this command:
@@ -53,6 +64,11 @@ Delete a torrent:
 To search torrents on 1337x.to, run this:
 ```
 $ python main.py -S "string to be searched"
+```
+
+To search torrents on RARBG.to, run this:
+```
+$ python main.py ---rarbg "string to be searched"
 ```
 
 View entire account details with shareable links in tree like structure:
