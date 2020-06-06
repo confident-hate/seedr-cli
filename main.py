@@ -90,7 +90,6 @@ def addTorrent(magnet):
         print('Added: ', torrent_title)
     except KeyError:
         out = r.json()
-        print(out)
         if out['result'] == 'not_enough_space_added_to_wishlist' or out['result'] == 'queue_full_added_to_wishlist':
             print("Queue is full")
             print("Torrent Name:", out['wt']['title'], "(", round(
