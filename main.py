@@ -1,15 +1,17 @@
-import requests
-import sys
+#!/usr/bin/env python3
+
 import os
+import sys
 import json
 import time
-import argparse
-import bencodepy
-import hashlib
-import base64
 import x1337
-import mySelenium
 import rarbg
+import base64
+import hashlib
+import argparse
+import requests
+import bencodepy
+import mySelenium
 
 parser = argparse.ArgumentParser(
     description='A little script for seedr.', epilog='Enjoy!')
@@ -28,8 +30,11 @@ parser.add_argument('-w', '--wishlist', action='store_true',
 
 args = parser.parse_args()
 
-if os.path.isfile('cookie.txt'):
-    with open('cookie.txt', 'r') as f:
+home = os.path.expanduser('~')
+if not os.path.exists(f'{home}/.config/'):
+    os.makedirs(f'{home}/.config/')
+if os.path.isfile(f'{home}/.config/seedr.cookie'):
+    with open(f'{home}/.config/seedr.cookie', 'r') as f:
         mycookie = f.read()
         # print(mycookie)
 else:
@@ -43,7 +48,6 @@ headr = {
     'Referer': 'https://www.seedr.cc/files',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'X-Requested-With': 'XMLHttpRequest',
-    'Content-Length': '66',
     'Origin': 'https://www.seedr.cc',
     'Connection': 'keep-alive',
     'Cookie': mycookie,
@@ -53,7 +57,7 @@ headr = {
 
 def magnetCheck(stringPassed):
     if "magnet:?xt=" in stringPassed[:11]:
-        #print("YAY its a magnet link")
+        # print("YAY its a magnet link")
         addTorrent(stringPassed)
     else:
         if os.path.isfile(stringPassed) and stringPassed.endswith('.torrent'):
@@ -128,17 +132,20 @@ def stats():
     print("USER ".ljust(30)+email, "USER ID ".ljust(30)+userID, "MEMBERSHIP ".ljust(30)+isPremium,
           "BANDWIDTH USED ".ljust(30)+bandwidth_used, "COUNTRY ".ljust(30)+country, sep='\n')
     print(space_used + '/' + space_max + ' used.')
-    print("root")
-    print("│")
     list = JSONSTATS['folders']
-    for item in range(len(list)):
-        name = JSONSTATS['folders'][item]['name']
-        size = str(
-            round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
-        ) + ' MB'
-        folderID = JSONSTATS['folders'][item]['id']
-        print(f'├──{name} {size}')
-        folderContent(folderID)
+    if len(list) > 0:
+        for item in range(len(list)):
+            print("root")
+            print("│")
+            name = JSONSTATS['folders'][item]['name']
+            size = str(
+                round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
+            ) + ' MB'
+            folderID = JSONSTATS['folders'][item]['id']
+            print(f'├──{name} {size}')
+            folderContent(folderID)
+    else:
+        print("\nEmpty list.")
     print("\nChecking wishlist items: ")
     getWishlistItemsList()
     if len(wishlist_id_list) == 0:
@@ -155,6 +162,9 @@ def newDelete():
     r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
     print(r.status_code, r.reason)
     TorrList = r.json()['folders']
+    if len(TorrList) < 1:
+        print("The list is empty. Exiting...")
+        sys.exit(0)
     folder_id_list = []
     print("SN".ljust(4), "TORRENT NAME".ljust(80), "SIZE".center(12))
     for item in range(len(TorrList)):
@@ -167,9 +177,16 @@ def newDelete():
         folder_id_list.append(folderID)
     while 1:
         try:
-            input_index = int(input("Select torrent to delete...\n")) - 1
-            if input_index > 0 and input_index < len(folder_id_list):
-                delete_this_id = str(folder_id_list[input_index])
+            input_from_user = input(
+                "Torrent to delete: (eg: \"1,2,3\", \"1-5\", \"ALL\")\n")
+            if input_from_user.upper() == 'ALL':
+                for i in range(len(folder_id_list)):
+                    deleteTorrent(str(folder_id_list[i]))
+                print("Deleted")
+                break
+            actual_index = int(input_from_user) - 1
+            if (actual_index) >= 0 and (actual_index) < len(folder_id_list):
+                delete_this_id = str(folder_id_list[actual_index])
                 if deleteTorrent(delete_this_id):
                     print("Deleted")
                 else:
@@ -177,8 +194,25 @@ def newDelete():
                 break
             else:
                 print("Invlid input")
+
         except ValueError:
-            print("Invlid input")
+            if ", " in input_from_user:
+                intermediate = input_from_user.split(', ')
+            elif "," in input_from_user:
+                intermediate = input_from_user.split(',')
+            elif "-" in input_from_user:
+                intermediate = input_from_user.split('-')
+                intermediate = list(
+                    range(int(intermediate[0]), int(intermediate[1])+1))
+            else:
+                print("Invalid Input. Try again...")
+                continue
+            for item in intermediate:
+                if (int(item)-1) >= 0 and (int(item)-1) < len(folder_id_list):
+                    deleteTorrent(str(folder_id_list[int(item)-1]))
+            print("Done")
+            break
+
         except KeyboardInterrupt:
             print("\nExiting...")
             sys.exit(0)
@@ -370,7 +404,7 @@ def loginCheck():
     try:
         if r.json()['result'] == 'login_required':
             mycookie = mySelenium.call_me_niggas()
-            with open('cookie.txt', 'w') as f:
+            with open(f'{home}/.config/seedr.cookie', 'w') as f:
                 f.write(mycookie)
     except KeyError:
         pass

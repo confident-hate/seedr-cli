@@ -1,9 +1,9 @@
+import os
+import sys
+import time
 import requests
 from bs4 import BeautifulSoup
-import sys
-import os
 from selenium import webdriver
-import time
 
 
 if os.path.isfile('rarbgcookie.txt'):
