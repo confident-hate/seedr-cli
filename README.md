@@ -24,8 +24,13 @@ Also you need to install firefox web browser on your machine.
   
 ## Usage
 
+You should add this in your ~/.zshrc file:
 ```
-$ python main.py -h
+alias seedr='python3 /path/to/seedr-cli/main.py
+```
+
+```
+$ seedr -h
 usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-Sr RARBG] [-d] [-w]
 
 optional arguments:
@@ -47,36 +52,68 @@ optional arguments:
  ```
  First you need to login your account. Run this command:
  ```
- $ python main.py
+ $ seedr
  ```
  
-Adding a torrent via this:
+Add a torrent like this:
  ```
- $ python main.py -a "magnet_link_goes_here"
- $ python main.py -a "/path/to/torrent/file.torrent"
+ $ seedr -a "magnet_link_goes_here"
+ $ seedr -a "/path/to/torrent/file.torrent"
  ```
  
-Delete a torrent:
+Delete a torrent like this:
  ```
- $ python main.py -d
+ $ seedr -d
+ 200 OK
+SN   TORRENT NAME                                                                         SIZE    
+1    <File Name REDACTED>                                                              1018.27 MB 
+Torrent to delete: (eg: "1,2,3", "1-5", "ALL")
  ```
 
 To search torrents on 1337x.to, run this:
 ```
-$ python main.py -S "string to be searched"
+$ seedr -S "string to be searched"
 ```
 
 To search torrents on RARBG.to, run this:
 ```
-$ python main.py ---rarbg "string to be searched"
+$ seedr --rarbg "string to be searched"
 ```
 
 View entire account details with shareable links in tree like structure:
 ```
-$ python main.py -s
+$ seedr -s
+200 OK
+USER                          <REDACTED>
+USER ID                       <REDACTED>
+MEMBERSHIP                    NON-PREMIUM
+BANDWIDTH USED                40.23 TB
+COUNTRY                       <REDACTED>
+5.3 GB/8.0 GB used.
+root
+│
+├──<Folder Name REDACTED> 1018.27 MB
+│  ├──<File Name REDACTED> 1018.27 MB
+│  │  └──https://fr.seedr.cc/ff_get/743824252/<REDACTED>
+
+Checking wishlist items: 
+Wishlist is empty
+```
+
+To list only shareble links use seedr with grep like this:
+```
+$ seedr -s | grep -o 'http.*'
+https://fr.seedr.cc/ff_get/743824252/<REDACTED>
+https://fr.seedr.cc/ff_get/743823522/<REDACTED>
+https://fr.seedr.cc/ff_get/743826352/<REDACTED>
+https://fr.seedr.cc/ff_get/743368252/<REDACTED>
+```
+You can even pipe it to clipboard manager like this:
+```
+$ seedr -s | grep -o 'http.*' | xsel -b
 ```
 
 Play with wishlist items:
 ```
-$ python main.py -w
+$ seedr -w
 ```
