@@ -1,5 +1,5 @@
-from selenium import webdriver
 import time
+from selenium import webdriver
 
 
 def call_me_niggas():
@@ -19,5 +19,3 @@ def call_me_niggas():
                 dest += f'{name}={value};'
             driver.close()
             return dest[:-1]
-
-

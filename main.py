@@ -26,7 +26,7 @@ parser.add_argument('-Sr', '--rarbg', '-SR', type=str,
 parser.add_argument('-d', '--delete', action='store_true',
                     help='delete a torrent')
 parser.add_argument('-w', '--wishlist', action='store_true',
-                    help='List items from the wishlist')
+                    help='list items from the wishlist')
 
 args = parser.parse_args()
 
@@ -57,22 +57,22 @@ headr = {
 
 def magnetCheck(stringPassed):
     if "magnet:?xt=" in stringPassed[:11]:
-        # print("YAY its a magnet link")
         addTorrent(stringPassed)
+    elif os.path.isfile(stringPassed) and stringPassed.endswith('.torrent'):
+        metadata = bencodepy.decode_from_file(stringPassed)
+        subj = metadata[b'info']
+        hashcontents = bencodepy.encode(subj)
+        digest = hashlib.sha1(hashcontents).digest()
+        b32hash = base64.b32encode(digest).decode()
+        convertedMagnet = 'magnet:?'\
+            + 'xt=urn:btih:' + b32hash\
+            + '&dn=' + metadata[b'info'][b'name'].decode()\
+            + '&tr=' + metadata[b'announce'].decode()\
+            + '&xl=' + str(metadata[b'info'][b'piece length'])
+        addTorrent(convertedMagnet)
     else:
-        if os.path.isfile(stringPassed) and stringPassed.endswith('.torrent'):
-            metadata = bencodepy.decode_from_file(stringPassed)
-            subj = metadata[b'info']
-            hashcontents = bencodepy.encode(subj)
-            digest = hashlib.sha1(hashcontents).digest()
-            b32hash = base64.b32encode(digest).decode()
-            convertedMagnet = 'magnet:?'\
-                + 'xt=urn:btih:' + b32hash\
-                + '&dn=' + metadata[b'info'][b'name'].decode()\
-                + '&tr=' + metadata[b'announce'].decode()\
-                + '&xl=' + str(metadata[b'info'][b'piece length'])
-            # print(convertedMagnet)
-            addTorrent(convertedMagnet)
+        print("Invalid input. Exiting...")
+        sys.exit(0)
 
 
 def addTorrent(magnet):
@@ -214,7 +214,7 @@ def newDelete():
             break
 
         except KeyboardInterrupt:
-            print("\nExiting...")
+            print("Exiting...")
             sys.exit(0)
 
 
@@ -285,7 +285,7 @@ def activeTorrentProgress():
                     sys.stdout.flush()
                     time.sleep(2)
                 except KeyboardInterrupt:
-                    print("\nExiting...")
+                    print("Exiting...")
                     sys.exit(0)
 
 
@@ -409,47 +409,54 @@ def loginCheck():
     except KeyError:
         pass
     except KeyboardInterrupt:
-        print("Ctrl + c detected...")
+        print("Exiting...")
         sys.exit(0)
     except:
         print("Unknown error...")
         sys.exit(0)
 
 
-loginCheck()
-if args.stats:
-    stats()
-if args.add:
-    magnetCheck(args.add)
-if args.search:
-    magnetCheck(x1337.search(args.search))
-if args.rarbg:
-    magnetCheck(rarbg.initial(args.rarbg))
-if args.delete:
-    newDelete()
-if args.wishlist:
-    getWishlistItemsList()
-    if len(wishlist_id_list) == 0:
-        print("Wishlist is empty. Exiting...\n")
-        sys.exit(0)
-    while 1:
-        try:
-            user_input = int(
-                input("Press 1) to delete, 2) to download, 3) to quit\n"))
-            if user_input == 1:
-                # code for deletion
-                wishlist_index = int(input("Enter index to delete\n")) - 1
-                removeItemfromWaitlist(wishlist_id_list[wishlist_index])
-            elif user_input == 2:
-                # code for download
-                wishlist_index = int(input("Enter index to download\n")) - 1
-                DownloadTorrentFromWishlist(wishlist_id_list[wishlist_index])
-            elif user_input == 3:
-                sys.exit(0)
-            else:
-                print("Invalid Input.")
-        except ValueError:
-            print("Invlid input")
-        except KeyboardInterrupt:
-            print("\nExiting...")
+def main():
+    loginCheck()
+    if args.stats:
+        stats()
+    if args.add:
+        magnetCheck(args.add)
+    if args.search:
+        magnetCheck(x1337.search(args.search))
+    if args.rarbg:
+        magnetCheck(rarbg.initial(args.rarbg))
+    if args.delete:
+        newDelete()
+    if args.wishlist:
+        getWishlistItemsList()
+        if len(wishlist_id_list) == 0:
+            print("Wishlist is empty. Exiting...")
             sys.exit(0)
+        while 1:
+            try:
+                user_input = int(
+                    input("Press 1) to delete, 2) to download, 3) to quit\n"))
+                if user_input == 1:
+                    # code for deletion
+                    wishlist_index = int(input("Enter index to delete\n")) - 1
+                    removeItemfromWaitlist(wishlist_id_list[wishlist_index])
+                elif user_input == 2:
+                    # code for download
+                    wishlist_index = int(
+                        input("Enter index to download\n")) - 1
+                    DownloadTorrentFromWishlist(
+                        wishlist_id_list[wishlist_index])
+                elif user_input == 3:
+                    sys.exit(0)
+                else:
+                    print("Invalid Input.")
+            except ValueError:
+                print("Invlid input")
+            except KeyboardInterrupt:
+                print("Exiting...")
+                sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
