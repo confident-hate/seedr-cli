@@ -9,13 +9,8 @@ def call_me_niggas():
     initial_cookies = driver.get_cookies()
     while 1:
         time.sleep(2)
-        if initial_cookies != driver.get_cookies():
+        final_cookies = driver.get_cookies()
+        if initial_cookies != final_cookies:
             print("Login Successfull")
-            final_cookies = driver.get_cookies()
-            dest = ''
-            for item in final_cookies:
-                name = item['name']
-                value = item['value']
-                dest += f'{name}={value};'
             driver.close()
-            return dest[:-1]
+            return final_cookies

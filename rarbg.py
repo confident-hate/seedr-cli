@@ -101,7 +101,7 @@ def initial(TEXT):
         with open('rarbgcookie.txt', 'w') as f:
             f.write(myrarbgcookie)
         user_agent = {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/81.0',
             'cookie': myrarbgcookie
         }
     return search(TEXT)

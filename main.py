@@ -6,17 +6,22 @@ import json
 import time
 import x1337
 import rarbg
+import pickle
 import base64
 import hashlib
 import argparse
 import requests
 import bencodepy
 import mySelenium
+from colorama import Fore, init, deinit, Style
+init(autoreset=True)
 
 parser = argparse.ArgumentParser(
     description='A little script for seedr.', epilog='Enjoy!')
 parser.add_argument('-A', '--active', action='store_true',
                     help='display active download progress')
+parser.add_argument('-Ad', '--activeDelete',
+                    action='store_true', help='delete active torrent')
 parser.add_argument('-s', '--stats', action='store_true',
                     help='display full stats of seedr account')
 parser.add_argument('-a', '--add', type=str,
@@ -36,24 +41,18 @@ home = os.path.expanduser('~')
 if not os.path.exists(f'{home}/.config/'):
     os.makedirs(f'{home}/.config/')
 if os.path.isfile(f'{home}/.config/seedr.cookie'):
-    with open(f'{home}/.config/seedr.cookie', 'r') as f:
-        mycookie = f.read()
-        # print(mycookie)
-else:
-    mycookie = ''
+    mycookie = pickle.load(open(f'{home}/.config/seedr.cookie', 'rb'))
+    s = requests.Session()
+    for cook in mycookie:
+        s.cookies.set(cook['name'], cook['value'])
+
 headr = {
     'Host': 'www.seedr.cc',
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36',
     'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'Accept-Language': 'en-US,en;q=0.5',
     'Accept-Encoding': 'gzip, deflate, br',
-    'Referer': 'https://www.seedr.cc/files',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'X-Requested-With': 'XMLHttpRequest',
-    'Origin': 'https://www.seedr.cc',
-    'Connection': 'keep-alive',
-    'Cookie': mycookie,
-    'TE': 'Trailers'
+    'X-Requested-With': 'XMLHttpRequest'
 }
 
 
@@ -75,8 +74,7 @@ def magnetCheck(stringPassed):
     elif stringPassed.startswith('http') and stringPassed.endswith('.torrent'):
         addTorrent(stringPassed)
     else:
-        print("Invalid input. Exiting...")
-        sys.exit(0)
+        print(f"{Fore.RED}Invalid input. Exiting...")
 
 
 def addTorrent(magnet):
@@ -97,7 +95,7 @@ def addTorrent(magnet):
         'action': 'add_torrent'
     }
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     print(r.status_code, r.reason)
     try:
         torrent_title = r.json()['title']
@@ -105,12 +103,12 @@ def addTorrent(magnet):
     except KeyError:
         out = r.json()
         if out['result'] == 'not_enough_space_added_to_wishlist' or out['result'] == 'queue_full_added_to_wishlist':
-            print("Queue is full")
-            print("Torrent Name:", out['wt']['title'], "(", round(
-                int(out['wt']['size']) / 1024 / 1024, 2), "MB )")
-            print("File id: ", out['wt']['id'], "is added to waitlist.")
-            sys.exit(0)
-    activeTorrentProgress()
+            print(f"{Fore.RED}Error: {out['result']}")
+            print(
+                f"{Fore.CYAN}{out['wt']['title']}{Style.RESET_ALL} is added to wishlist.")
+            exit()
+    if activeTorrentProgress():
+        fetch_links_after_add()
 
 
 def stats():
@@ -122,10 +120,10 @@ def stats():
         'content_id': '0'
     }
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     print(r.status_code, r.reason)
 
-    r2 = requests.post(url, params=PARAMS2, data=DATA, headers=headr)
+    r2 = s.post(url, params=PARAMS2, data=DATA, headers=headr)
     settingsJSON = r2.json()
     userID = str(settingsJSON['account']['user_id'])
     isPremium = settingsJSON['account']['package_name']
@@ -152,14 +150,13 @@ def stats():
                 round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
             ) + ' MB'
             folderID = JSONSTATS['folders'][item]['id']
-            print(f'├──{name} {size}')
+            print(f'├──{Fore.CYAN}{Style.DIM}📁{name} {size}')
             folderContent(folderID)
     else:
-        print("\nEmpty list.")
+        print(f"{Fore.MAGENTA}\nEmpty list.")
     print("\nChecking wishlist items: ")
-    getWishlistItemsList()
-    if len(wishlist_dict['wishlist_torrents']) == 0:
-        print("Wishlist is empty")
+    if not getWishlistItemsList():
+        print(f"{Fore.MAGENTA}Wishlist is empty.")
 
 
 def newDelete():
@@ -169,13 +166,15 @@ def newDelete():
         'content_type': 'folder',
         'content_id': '0'
     }
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     print(r.status_code, r.reason)
     TorrList = r.json()['folders']
     if len(TorrList) < 1:
-        print("The list is empty. Exiting...")
-        sys.exit(0)
-    folder_id_list = []
+        print(f"{Fore.RED}The list is empty. Exiting...")
+        exit()
+    folder_list_dict = {
+        'torrents': []
+    }
     print("SN".ljust(4), "TORRENT NAME".ljust(80), "SIZE".center(12))
     for item in range(len(TorrList)):
         name = TorrList[item]['name'][:75]
@@ -184,35 +183,46 @@ def newDelete():
         ) + ' MB'
         print(str(item + 1).ljust(4), name.ljust(80), size.center(12))
         folderID = TorrList[item]['id']
-        folder_id_list.append(folderID)
+        temp_dict = {
+            'title': name,
+            'size': size,
+            'id': folderID
+        }
+        folder_list_dict['torrents'].append(temp_dict)
+
     while 1:
         try:
             input_from_user = input(
-                "Torrent to delete: (eg: \"1,2,3\", \"1-5\", \"ALL\")\n")
+                "Torrent to delete: (eg: \"1,2,3\", \"1 2 3\", \"1-5\", \"ALL\")\n")
             if input_from_user.upper() == 'ALL':
-                for i in range(len(folder_id_list)):
-                    deleteTorrent(str(folder_id_list[i]))
-                print("All torrents deleted successfully.")
+                for i in range(len(folder_list_dict['torrents'])):
+                    deleteTorrent(
+                        str(folder_list_dict['torrents'][i]['id']))
+                print(f"{Fore.GREEN}All torrents deleted successfully.")
                 break
             intermediate = [int(input_from_user)]
         except KeyboardInterrupt:
-            print("Exiting...")
-            sys.exit(0)
+            print(f"{Fore.RED}Exiting...")
+            exit()
         except ValueError:
             if "," in input_from_user:
                 intermediate = [int(i) for i in input_from_user.split(',')]
+            elif " " in input_from_user:
+                intermediate = [int(i) for i in input_from_user.split(' ')]
             elif "-" in input_from_user:
                 first, second = input_from_user.split('-')
                 intermediate = [i for i in range(int(first), int(second)+1)]
             else:
-                print("Invalid input. Try again...")
+                print(f"{Fore.RED}Invalid input. Try again...")
                 continue
         for item in intermediate:
-            if (item-1) >= 0 and (item-1) < len(folder_id_list):
-                deleteTorrent(str(folder_id_list[item-1]))
-                print("Done")
+            if (item-1) >= 0 and (item-1) < len(folder_list_dict['torrents']):
+                deleteTorrent(str(folder_list_dict['torrents'][item-1]['id']))
+                print(
+                    f"Deleted: {Fore.GREEN}{folder_list_dict['torrents'][item-1]['title']} "
+                    f"{Fore.CYAN}{folder_list_dict['torrents'][item-1]['size']}")
             else:
-                print("Invalid input.")
+                print(f"{Fore.RED}Invalid input.")
         break
 
 
@@ -223,40 +233,69 @@ def fetch_links_after_add():
         'content_type': 'folder',
         'content_id': '0'
     }
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    time.sleep(5)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     list = r.json()['folders']
     for item in list:
         name = item['name']
-        if name == torrent_title:
+        if name[:50] == torrent_title[:50]:
             folderID = item['id']
-            print(f'├──{name}')
+            print(f'├──{Fore.CYAN}{Style.DIM}📁{name}')
             folderContent(folderID)
 
 
-def activeTorrentProgress():
+def progress(count, total):
+    bar_len = 15
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '#' * filled_len + ' ' * (bar_len - filled_len)
+    return bar, percents
+
+
+def active_torrent_list():
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'list_contents'}
     DATA = {
         'content_type': 'folder',
         'content_id': '0'
     }
-    r2 = requests.post(url, params=PARAMS, data=DATA, headers=headr)
-    # print(r2.json())
-    if len(r2.json()['torrents']) == 0:
-        print("All downloads finished! there are no active torrents.")
-        fetch_links_after_add()
+    response = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    return response.json()['torrents']
+
+
+def acive_torrrent_delete():
+    activeTorrents = active_torrent_list()
+    if len(activeTorrents) != 0:
+        for i in range(len(activeTorrents)):
+            active_torrent_id = activeTorrents[i]['id']
+            active_torrent_name = activeTorrents[i]['name']
+            active_torrent_size = str(
+                round(int(activeTorrents[i]['size']) / 1024 / 1024, 2)) + ' MB'
+            print(active_torrent_name,
+                  active_torrent_size)
+            user_input = input(
+                "Do you want to delete this active torrent? y/n\n")
+            if user_input.lower() == 'y':
+                deleteActiveTorrent(active_torrent_id)
     else:
-        activeTorrents = r2.json()['torrents']
+        print(f"{Fore.GREEN}No active torrents found.")
+
+
+def activeTorrentProgress():
+    activeTorrents = active_torrent_list()
+    if len(activeTorrents) == 0:
+        print(f"{Fore.GREEN}All downloads finished! there are no active torrents.")
+        return True
+    else:
         for i in range(len(activeTorrents)):
             progress_url = activeTorrents[i]['progress_url']
             progressPercentage = 0.0
-            try:
-                while progressPercentage < 100.0:
+            while progressPercentage < 100.0:
+                try:
                     rr = requests.get(progress_url)
                     strJson = rr.text[2:-1]
                     d = json.loads(strJson)
-                    # print(d)
-
                     if d['title']:
                         name = d['title'][:75]
                         size = str(
@@ -269,25 +308,25 @@ def activeTorrentProgress():
                         leechers = d['stats']['leechers']
                         progressPercentage = d['progress']
                         if progressPercentage == 101:
-                            sys.stdout.write('\r{0} {1} {2} Q{3} S{4} L{5} Finished \n'.format(
-                                name, size, ddlRate, quality, seeders, leechers))
-                            fetch_links_after_add()
-                            sys.exit(0)
+                            sys.stdout.write(
+                                f'\r{name} {size} {ddlRate} Q{quality} S{seeders} L{leechers} Finished \n')
+                            return True
                         else:
-                            sys.stdout.write('\r{0} {1} {2} Q{3} S{4} L{5} {6}% '.format(
-                                name, size, ddlRate, quality, seeders, leechers, progressPercentage))
+                            bar, percents = progress(progressPercentage, 101)
+                            sys.stdout.write(
+                                f'\r{name[:50]}[{Fore.GREEN}{bar}{Style.RESET_ALL}] {Fore.MAGENTA}{percents}% {size} {ddlRate} S{seeders}')
                             sys.stdout.flush()
                         time.sleep(2)
 
-            except KeyError:
-                sys.stdout.write('\rCollecting Seeds...')
-                sys.stdout.flush()
-                time.sleep(2)
-            except KeyboardInterrupt:
-                print("\nExiting...")
-                sys.exit(0)
-            except:
-                pass
+                except KeyError:
+                    sys.stdout.write('\rCollecting Seeds...')
+                    sys.stdout.flush()
+                    time.sleep(2)
+                except KeyboardInterrupt:
+                    print(f"\n{Fore.RED}Exiting...")
+                    exit()
+                except:
+                    pass
 
 
 def folderContent(FID):
@@ -297,8 +336,7 @@ def folderContent(FID):
     }
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'list_contents'}
-    newRequest = requests.post(
-        url, params=PARAMS, data=DATA, headers=headr)
+    newRequest = s.post(url, params=PARAMS, data=DATA, headers=headr)
     JSONSTATS = newRequest.json()
     filelist = JSONSTATS['files']
     for file in range(len(filelist)):
@@ -311,8 +349,8 @@ def folderContent(FID):
         # only display stuff greater than 1 MB
         if (round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)) > 1.0:
             sharedURL = fetchFileLink(fileID)
-            print(f'│  ├──{filename} {size}',
-                  f'│  │  └──{sharedURL}', sep='\n')
+            print(f'│  ├──{Fore.CYAN}📓{filename} {size}',
+                  f'│  │  {Fore.GREEN}└──🔗{sharedURL}', sep='\n')
             # Clickable link
             # text = "LINK"
             # target = sharedURL
@@ -327,21 +365,21 @@ def fetchFileLink(fileid):
     }
     PARAMS = {'action': 'fetch_file'}
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if (r.json()['result']) is True:
         return r.json()['url']
     else:
         return False
 
 
-def removeItemfromWaitlist(fileid):
+def removeItemfromWishlist(fileid):
     url = 'https://www.seedr.cc/actions.php'
     DATA = {
         'id': fileid
     }
     PARAMS = {'action': 'remove_wishlist'}
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if (r.json()['result']) is True:
         print("File is removed from wishlist.")
 
@@ -353,14 +391,14 @@ def DownloadTorrentFromWishlist(fileid):
     }
     PARAMS = {'action': 'add_torrent'}
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.json()['result'] is True:
         print("Torrent is added from wishlist")
         activeTorrentProgress()
     if r.json()['result'] == 'not_enough_space_added_to_wishlist':
-        print("Error: There is not enough space.")
+        print(f"{Fore.RED}Error: There is not enough space.")
     if r.json()['result'] == 'queue_full_added_to_wishlist':
-        print("Error: There are some active downloads going.")
+        print(f"{Fore.RED}Error: There are some active downloads going.")
 
 
 def getWishlistItemsList():
@@ -370,7 +408,7 @@ def getWishlistItemsList():
     DATA = {
         'lol': 'haha'  # I am not sure why requests is not working without data=
     }
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.json()['result'] is True:
         wishlist = r.json()['account']['wishlist']
         wishlist_dict = {
@@ -385,15 +423,31 @@ def getWishlistItemsList():
                 'id': item_id
             }
             wishlist_dict['wishlist_torrents'].append(temp_dict)
+            return True
+    else:
+        return False
 
 
 def deleteTorrent(folderid):
     url = 'https://www.seedr.cc/actions.php'
     PARAMS = {'action': 'delete'}
     DATA = {
-        'delete_arr': "[{\"type\":\"folder\",\"id\":\""+folderid+"\"}]"
+        'delete_arr': f'[{{"type":"folder","id":"{folderid}"}}]'
     }
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    if r.status_code == 200:
+        return True
+    else:
+        return False
+
+
+def deleteActiveTorrent(user_torrent_id):
+    url = 'https://www.seedr.cc/actions.php'
+    PARAMS = {'action': 'delete'}
+    DATA = {
+        'delete_arr': f'[{{"type":"torrent","id":"{user_torrent_id}"}}]'
+    }
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.status_code == 200:
         return True
     else:
@@ -401,7 +455,6 @@ def deleteTorrent(folderid):
 
 
 def loginCheck():
-    global mycookie
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'list_contents'}
     DATA = {
@@ -409,26 +462,34 @@ def loginCheck():
         'content_id': '0'
     }
 
-    r = requests.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     try:
         if r.json()['result'] == 'login_required':
-            mycookie = mySelenium.call_me_niggas()
-            with open(f'{home}/.config/seedr.cookie', 'w') as f:
-                f.write(mycookie)
+            returned_cookie = mySelenium.call_me_niggas()
+            pickle.dump(returned_cookie, open(
+                f'{home}/.config/seedr.cookie', "wb"))
+            print("Cookie added")
     except KeyError:
         pass
     except KeyboardInterrupt:
         print("Exiting...")
-        sys.exit(0)
+        exit()
     except:
         print("Unknown error...")
-        sys.exit(0)
+        exit()
+
+
+def exit():
+    deinit()
+    sys.exit()
 
 
 def main():
     loginCheck()
     if args.active:
         activeTorrentProgress()
+    if args.activeDelete:
+        acive_torrrent_delete()
     if args.stats:
         stats()
     if args.add:
@@ -440,37 +501,38 @@ def main():
     if args.delete:
         newDelete()
     if args.wishlist:
-        getWishlistItemsList()
-        if len(wishlist_dict['wishlist_torrents']) == 0:
-            print("Wishlist is empty. Exiting...")
-            sys.exit(0)
-        while 1:
-            try:
-                user_input = int(
-                    input("Press 1) to delete, 2) to download, 3) to quit\n"))
-                if user_input == 1:
-                    # code for deletion
-                    wishlist_index = int(input("Enter index to delete\n")) - 1
-                    removeItemfromWaitlist(
-                        wishlist_dict['wishlist_torrents'][wishlist_index]['id'])
-                elif user_input == 2:
-                    # code for download
-                    global torrent_title
-                    wishlist_index = int(
-                        input("Enter index to download\n")) - 1
-                    torrent_title = wishlist_dict['wishlist_torrents'][wishlist_index]['title']
-                    DownloadTorrentFromWishlist(
-                        wishlist_dict['wishlist_torrents'][wishlist_index]['id'])
-                elif user_input == 3:
-                    sys.exit(0)
-                else:
-                    print("Invalid Input.")
-            except ValueError:
-                print("Invlid input")
-            except KeyboardInterrupt:
-                print("Exiting...")
-                sys.exit(0)
+        if getWishlistItemsList():
+            while 1:
+                try:
+                    user_input = int(
+                        input("Press 1) to delete, 2) to download, 3) to quit\n"))
+                    if user_input == 1:
+                        # code for deletion
+                        wishlist_index = int(
+                            input("Enter index to delete\n")) - 1
+                        removeItemfromWishlist(
+                            wishlist_dict['wishlist_torrents'][wishlist_index]['id'])
+                    elif user_input == 2:
+                        # code for download
+                        global torrent_title
+                        wishlist_index = int(
+                            input("Enter index to download\n")) - 1
+                        torrent_title = wishlist_dict['wishlist_torrents'][wishlist_index]['title']
+                        DownloadTorrentFromWishlist(
+                            wishlist_dict['wishlist_torrents'][wishlist_index]['id'])
+                    elif user_input == 3:
+                        exit()
+                    else:
+                        print(f"{Fore.RED}Invalid Input.")
+                except ValueError:
+                    print(f"{Fore.RED}Invlid input")
+                except KeyboardInterrupt:
+                    print(f"{Fore.RED}Exiting...")
+                    exit()
+        else:
+            print(f"{Fore.MAGENTA}Wishlist is empty. Exiting...")
 
 
 if __name__ == "__main__":
     main()
+    exit()
