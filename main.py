@@ -37,12 +37,13 @@ parser.add_argument('-w', '--wishlist', action='store_true',
 
 args = parser.parse_args()
 
+s = requests.Session()
 home = os.path.expanduser('~')
-if not os.path.exists(f'{home}/.config/'):
-    os.makedirs(f'{home}/.config/')
-if os.path.isfile(f'{home}/.config/seedr.cookie'):
-    mycookie = pickle.load(open(f'{home}/.config/seedr.cookie', 'rb'))
-    s = requests.Session()
+if not os.path.exists(f'{home}/.config/seedr-cli/'):
+    os.makedirs(f'{home}/.config/seedr-cli/')
+if os.path.isfile(f'{home}/.config/seedr-cli/seedr.cookie'):
+    mycookie = pickle.load(
+        open(f'{home}/.config/seedr-cli/seedr.cookie', 'rb'))
     for cook in mycookie:
         s.cookies.set(cook['name'], cook['value'])
 
@@ -467,7 +468,7 @@ def loginCheck():
         if r.json()['result'] == 'login_required':
             returned_cookie = mySelenium.call_me_niggas()
             pickle.dump(returned_cookie, open(
-                f'{home}/.config/seedr.cookie', "wb"))
+                f'{home}/.config/seedr-cli/seedr.cookie', "wb"))
             print("Cookie added")
     except KeyError:
         pass
