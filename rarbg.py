@@ -68,7 +68,7 @@ def img2txt():
         im = Image.open(f"{home}/.config/seedr-cli/image.png")
         im = im.crop((int(x), int(y), int(width), int(height)))
         im.save(f"{home}/.config/seedr-cli/final.png")
-        return pytesseract.image_to_string(Image.open('final.png'))
+        return pytesseract.image_to_string(Image.open(f"{home}/.config/seedr-cli/final.png"))
 
 
 def solveCaptcha():
@@ -144,8 +144,10 @@ def getMegnet(url):
 
 
 def initial(TEXT):
+    count = 0
     while CaptchaCheck():
-        print("Solving Captcha...")
+        count += 1
+        print(f"Solving Captcha...try {count}")
         solveCaptcha()
     driver.close()
     return search(TEXT)
