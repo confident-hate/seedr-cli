@@ -36,6 +36,10 @@ usage: main.py [-h] [-s] [-a ADD] [-S SEARCH] [-Sr RARBG] [-d] [-w]
 optional arguments:
   -h, --help  
                      show this help message and exit
+  -A, --active
+                     display active download progress
+  -Ad, --activeDelete
+                     delete active torrent
   -s, --stats                                           
                     display full stats of seedr account
   -a ADD, --add ADD                            
@@ -59,6 +63,9 @@ Add a torrent like this:
  ```
  $ seedr -a "magnet_link_goes_here"
  $ seedr -a "/path/to/torrent/file.torrent"
+ 200 OK
+ Added:  <REDACTED>
+ <REDACTED>[######                    ] 40% 2382.81MB 3.81MB/s S962
  ```
  
 Delete a torrent like this:
@@ -67,7 +74,7 @@ Delete a torrent like this:
  200 OK
 SN   TORRENT NAME                                                                         SIZE    
 1    <File Name REDACTED>                                                              1018.27 MB 
-Torrent to delete: (eg: "1,2,3", "1-5", "ALL")
+Torrent to delete: (eg: "1,2,3", "1 2 3", "1-5", "ALL", "all")
  ```
 
 To search torrents on 1337x.to, run this:
@@ -84,17 +91,17 @@ View entire account details with shareable links in tree like structure:
 ```
 $ seedr -s
 200 OK
-USER                          <REDACTED>
-USER ID                       <REDACTED>
-MEMBERSHIP                    NON-PREMIUM
+USER                                        <REDACTED>
+USER ID                                   <REDACTED>
+MEMBERSHIP                         NON-PREMIUM
 BANDWIDTH USED                40.23 TB
-COUNTRY                       <REDACTED>
+COUNTRY                                <REDACTED>
 5.3 GB/8.0 GB used.
 root
 │
-├──<Folder Name REDACTED> 1018.27 MB
-│  ├──<File Name REDACTED> 1018.27 MB
-│  │  └──https://fr.seedr.cc/ff_get/743824252/<REDACTED>
+├──📁<Folder Name REDACTED> 1018.27 MB
+│    ├──📓<File Name REDACTED> 1018.27 MB
+│    │    └──🔗https://fr.seedr.cc/ff_get/743824252/<REDACTED>
 
 Checking wishlist items: 
 Wishlist is empty
