@@ -1,9 +1,9 @@
+import sys
 import requests
 from bs4 import BeautifulSoup
-import sys
 
 user_agent = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0'
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/81.0'
 }
 
 
@@ -11,7 +11,6 @@ def getMegnet(url):
     response = requests.get(url, headers=user_agent)
     soup = BeautifulSoup(response.content, 'html.parser')
     magnetLink = soup.select('a[href^="magnet"]')[0]['href']
-    # print(magnetLink)
     return magnetLink
 
 
@@ -24,12 +23,14 @@ def search(somestring):
         sys.exit(0)
     else:
         torrent_list = soup.select('a[href*="/torrent/"]')
-        seeds = soup.select('td.coll-2.seeds')
-        leeches = soup.select('td.coll-3.leeches')
-        size = soup.select('td.coll-4.size.mob-uploader')
-        uploader = soup.select('td.coll-5.uploader')
+        seeds = soup.select('td.coll-2')
+        leeches = soup.select('td.coll-3')
+        size = soup.select('td.coll-4')
+        uploader = soup.select('td.coll-5')
 
-        href_list = []
+        torrents_dict = {
+            'torrents': []
+        }
 
         try:
             print("SN".ljust(4), "TORRENT NAME".ljust(80), "SEEDS".ljust(6),
@@ -43,14 +44,22 @@ def search(somestring):
                 print(str(i + 1).ljust(4), torrent_name.ljust(80), torrent_seeds.ljust(6),
                       torrent_leeches.ljust(6), torrent_size.center(12), torrent_uploader)
                 href_link = "https://1337x.to" + torrent_list[i]['href']
-                href_list.append(href_link)
+                temp_dict = {
+                    'name': torrent_name,
+                    'size': torrent_size,
+                    'seeds': torrent_seeds,
+                    'leeches': torrent_leeches,
+                    'uploader': torrent_uploader,
+                    'href': href_link
+                }
+                torrents_dict['torrents'].append(temp_dict)
         except IndexError:
             pass
         while 1:
             try:
                 input_index = int(input("Select torrent to add...\n")) - 1
-                if input_index > 0 and input_index < len(href_list):
-                    goto_link = href_list[input_index]
+                if input_index >= 0 and input_index < len(torrents_dict['torrents']):
+                    goto_link = torrents_dict['torrents'][input_index]['href']
                     return getMegnet(goto_link)
                 else:
                     print("Invalid input")
@@ -59,4 +68,3 @@ def search(somestring):
             except KeyboardInterrupt:
                 print("\nExiting...")
                 sys.exit(0)
-
