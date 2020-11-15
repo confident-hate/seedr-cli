@@ -41,6 +41,9 @@ def CaptchaCheck():
     if "verify your browser" in soup.text:
         print("Captcha found.")
         return True
+    elif "Attention Required! | Cloudflare" in soup.text:
+        print(("Cloudflare is blocking connection. Try changing vpn location. Exiting..."))
+        sys.exit()
 
 
 def img2txt():
@@ -71,6 +74,8 @@ def img2txt():
 
 
 def solveCaptcha():
+    global driver
+    driver = webdriver.Firefox(options=options, firefox_profile=FFprofile)
     driver.implicitly_wait(10)
     driver.get('https://rarbgtorrents.org/torrents.php')
     solution = img2txt()
@@ -83,6 +88,7 @@ def solveCaptcha():
     selCookie = driver.get_cookies()
     pickle.dump(selCookie, open(
         f'{home}/.config/seedr-cli/rarbg.cookie', 'wb'))
+    driver.close()
 
 
 def search(somestring):
@@ -135,7 +141,7 @@ def search(somestring):
 
 
 def getMegnet(url):
-    response = requests.get(url, headers=user_agent)
+    response = se.get(url, headers=user_agent)
     soup = BeautifulSoup(response.content, 'html.parser')
     magnetLink = soup.select('a[href^="magnet"]')[0]['href']
     # print(magnetLink)
@@ -143,12 +149,13 @@ def getMegnet(url):
 
 
 def initial(TEXT):
-    global driver
-    driver = webdriver.Firefox(options=options, firefox_profile=FFprofile)
     count = 0
     while CaptchaCheck():
         count += 1
         print(f"Solving Captcha...try {count}")
         solveCaptcha()
-    driver.close()
     return search(TEXT)
+
+
+if __name__ == "__main__":
+    print(initial(sys.argv[1]))
