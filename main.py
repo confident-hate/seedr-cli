@@ -13,6 +13,7 @@ import argparse
 import requests
 import bencodepy
 import mySelenium
+from datetime import datetime
 from colorama import Fore, init, deinit, Style
 init(autoreset=True)
 
@@ -51,7 +52,7 @@ headr = {
     'Host': 'www.seedr.cc',
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36',
     'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Encoding': 'gzip, deflate',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'X-Requested-With': 'XMLHttpRequest'
 }
@@ -160,6 +161,35 @@ def stats():
         print(f"{Fore.MAGENTA}Wishlist is empty.")
 
 
+def utc2local(utc):
+    epoch = time.mktime(utc.timetuple())
+    offset = datetime.fromtimestamp(epoch) - datetime.utcfromtimestamp(epoch)
+    return utc + offset
+
+
+def time_ago(dt):
+    DAY_INCREMENTS = [[365, "year"], [30, "month"], [7, "week"], [1, "day"], ]
+    SECOND_INCREMENTS = [[3600, "hour"], [60, "minute"], [1, "second"], ]
+    diff = datetime.now() - dt
+    if diff.days < 0:
+        return "in the future?!?"
+    for increment, label in DAY_INCREMENTS:
+        if diff.days >= increment:
+            increment_diff = int(diff.days / increment)
+            return str(increment_diff) + " " + label + plural(increment_diff) + " ago"
+    for increment, label in SECOND_INCREMENTS:
+        if diff.seconds >= increment:
+            increment_diff = int(diff.seconds / increment)
+            return str(increment_diff) + " " + label + plural(increment_diff) + " ago"
+    return "just now"
+
+
+def plural(num):
+    if num != 1:
+        return "s"
+    return ""
+
+
 def newDelete():
     url = 'https://www.seedr.cc/content.php'
     PARAMS = {'action': 'list_contents'}
@@ -176,13 +206,17 @@ def newDelete():
     folder_list_dict = {
         'torrents': []
     }
-    print("SN".ljust(4), "TORRENT NAME".ljust(80), "SIZE".center(12))
+    print("SN".ljust(4), "TORRENT NAME".ljust(80),
+          "SIZE".center(12), "Time".center(12))
     for item in range(len(TorrList)):
         name = TorrList[item]['name'][:75]
         size = str(
             round(int(TorrList[item]['size']) / 1024 / 1024, 2)
         ) + ' MB'
-        print(str(item + 1).ljust(4), name.ljust(80), size.center(12))
+        time = time_ago(utc2local(datetime.strptime(
+            TorrList[item]['last_update'], '%Y-%m-%d %H:%M:%S')))
+        print(str(item + 1).ljust(4), name.ljust(80),
+              size.center(12), time.center(12))
         folderID = TorrList[item]['id']
         temp_dict = {
             'title': name,
