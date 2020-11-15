@@ -25,7 +25,6 @@ user_agent = {
 
 FFprofile = webdriver.FirefoxProfile()
 FFprofile.set_preference('network.http.spdy.enabled.http2', False)
-driver = webdriver.Firefox(options=options, firefox_profile=FFprofile)
 se = requests.Session()
 
 
@@ -144,6 +143,8 @@ def getMegnet(url):
 
 
 def initial(TEXT):
+    global driver
+    driver = webdriver.Firefox(options=options, firefox_profile=FFprofile)
     count = 0
     while CaptchaCheck():
         count += 1
