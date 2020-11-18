@@ -458,7 +458,7 @@ def getWishlistItemsList():
                 'id': item_id
             }
             wishlist_dict['wishlist_torrents'].append(temp_dict)
-            return True
+        return True
     else:
         return False
 
