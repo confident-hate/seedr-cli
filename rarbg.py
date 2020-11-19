@@ -5,6 +5,7 @@ import pickle
 import requests
 import pytesseract
 from PIL import Image
+from io import BytesIO
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -51,26 +52,23 @@ def img2txt():
         clk_here_button = driver.find_element_by_link_text('Click here')
         clk_here_button.click()
         time.sleep(10)
-    except:
-        pass
-
-    try:
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, 'solve_string'))
         )
+    except:
+        pass
     finally:
         element = driver.find_elements_by_css_selector('img')[1]
         location = element.location
         size = element.size
-        driver.save_screenshot(f"{home}/.config/seedr-cli/image.png")
+        png = driver.get_screenshot_as_png()
         x = location['x']
         y = location['y']
         width = location['x']+size['width']
         height = location['y']+size['height']
-        im = Image.open(f"{home}/.config/seedr-cli/image.png")
+        im = Image.open(BytesIO(png))
         im = im.crop((int(x), int(y), int(width), int(height)))
-        im.save(f"{home}/.config/seedr-cli/final.png")
-        return pytesseract.image_to_string(Image.open(f"{home}/.config/seedr-cli/final.png"))
+        return pytesseract.image_to_string(im)
 
 
 def solveCaptcha():
@@ -158,4 +156,9 @@ def initial(TEXT):
 
 
 if __name__ == "__main__":
+    if not len(sys.argv) == 2:
+        print("Usage: python rarbg.py \"<string to search>\"")
+        sys.exit()
+    if not os.path.exists(f'{home}/.config/seedr-cli/'):
+        os.makedirs(f'{home}/.config/seedr-cli/')
     print(initial(sys.argv[1]))
