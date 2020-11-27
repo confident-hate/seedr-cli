@@ -446,6 +446,9 @@ def getWishlistItemsList():
     r = s.post(url, params=PARAMS, data=DATA, headers=headr)
     if r.json()['result'] is True:
         wishlist = r.json()['account']['wishlist']
+        if len(wishlist) < 1:
+            print(f"{Fore.RED}The list is empty. Exiting...")
+            exit()
         wishlist_dict = {
             'wishlist_torrents': []
         }
