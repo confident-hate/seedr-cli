@@ -28,7 +28,7 @@ else
 
 	elif [ "$1" = "--uninstall" ] ; then
 		read -n1 -p "Would you like to remove the cookies too? y/[N]: " delCookies
-		if [ $delCookies = "y" ] ; then
+		if [[ $delCookies = "y" ]] ; then
 			USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 			rm -rf $USER_HOME/.config/seedr-cli
 		fi
