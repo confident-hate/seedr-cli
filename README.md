@@ -11,8 +11,11 @@ Clone the repository
 ```bash
 $ git clone https://github.com/confident-hate/seedr-cli.git
 $ cd seedr-cli
-$ pip install -r requirements.txt 
+$ pip install -r requirements.txt
+$ sudo bash install.sh --install
 ```
+To uninstall seedr, execute the command `seedr --uninstall`
+
 Also you need to install firefox web browser on your machine.
 
 ## Features
@@ -23,11 +26,6 @@ Also you need to install firefox web browser on your machine.
   * Search torrents via RARBG
   
 ## Usage
-
-You should add this in your ~/.zshrc file:
-```
-alias seedr='python3 /path/to/seedr-cli/main.py
-```
 
 ```
 $ seedr -h

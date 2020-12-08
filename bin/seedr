@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ "$1" = "--uninstall" ]; then
+    sudo bash /usr/share/seedr-cli/install.sh --uninstall
+
+else
+    python3 /usr/share/seedr-cli/main.py "$@"
+fi 
