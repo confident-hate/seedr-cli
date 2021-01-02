@@ -13,9 +13,11 @@ import argparse
 import requests
 import bencodepy
 import mySelenium
+from rich.table import Table
 from datetime import datetime
-from colorama import Fore, init, deinit, Style
-init(autoreset=True)
+from rich.console import Console
+
+console = Console()
 
 parser = argparse.ArgumentParser(
     description='A little script for seedr.', epilog='Enjoy!')
@@ -76,7 +78,7 @@ def magnetCheck(stringPassed):
     elif stringPassed.startswith('http') and stringPassed.endswith('.torrent'):
         addTorrent(stringPassed)
     else:
-        print(f"{Fore.RED}Invalid input. Exiting...")
+        console.print("Invalid input. Exiting...", style="red")
 
 
 def addTorrent(magnet):
@@ -105,9 +107,9 @@ def addTorrent(magnet):
     except KeyError:
         out = r.json()
         if out['result'] == 'not_enough_space_added_to_wishlist' or out['result'] == 'queue_full_added_to_wishlist':
-            print(f"{Fore.RED}Error: {out['result']}")
-            print(
-                f"{Fore.CYAN}{out['wt']['title']}{Style.RESET_ALL} is added to wishlist.")
+            console.print(f"Error: {out['result']}", style="red")
+            console.print(
+                f"[cyan]{out['wt']['title']}[/cyan] is added to wishlist.")
             exit()
     if activeTorrentProgress():
         fetch_links_after_add()
@@ -145,20 +147,18 @@ def stats():
     list = JSONSTATS['folders']
     if len(list) > 0:
         for item in range(len(list)):
-            print("root")
-            print("│")
             name = JSONSTATS['folders'][item]['name']
             size = str(
                 round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
             ) + ' MB'
             folderID = JSONSTATS['folders'][item]['id']
-            print(f'├──{Fore.CYAN}{Style.DIM}📁{name} {size}')
+            console.print(f'[bold cyan]📁{name} {size}[/bold cyan]')
             folderContent(folderID)
     else:
-        print(f"{Fore.MAGENTA}\nEmpty list.")
+        console.print("\nEmpty list.", style="magenta")
     print("\nChecking wishlist items: ")
     if not getWishlistItemsList():
-        print(f"{Fore.MAGENTA}Wishlist is empty.")
+        console.print("Wishlist is empty.", style="magenta")
 
 
 def utc2local(utc):
@@ -201,13 +201,16 @@ def newDelete():
     print(r.status_code, r.reason)
     TorrList = r.json()['folders']
     if len(TorrList) < 1:
-        print(f"{Fore.RED}The list is empty. Exiting...")
+        console.print("The list is empty. Exiting...", style="red")
         exit()
     folder_list_dict = {
         'torrents': []
     }
-    print("SN".ljust(4), "TORRENT NAME".ljust(80),
-          "SIZE".center(12), "Time".center(12))
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("SN", style="dim")
+    table.add_column("Torrent Name")
+    table.add_column("Size", justify="center")
+    table.add_column("Time", justify="center")
     for item in range(len(TorrList)):
         name = TorrList[item]['name'][:75]
         size = str(
@@ -215,8 +218,7 @@ def newDelete():
         ) + ' MB'
         time = time_ago(utc2local(datetime.strptime(
             TorrList[item]['last_update'], '%Y-%m-%d %H:%M:%S')))
-        print(str(item + 1).ljust(4), name.ljust(80),
-              size.center(12), time.center(12))
+        table.add_row(str(item + 1), name, size, time)
         folderID = TorrList[item]['id']
         temp_dict = {
             'title': name,
@@ -224,6 +226,7 @@ def newDelete():
             'id': folderID
         }
         folder_list_dict['torrents'].append(temp_dict)
+    console.print(table)
 
     while 1:
         try:
@@ -233,11 +236,12 @@ def newDelete():
                 for i in range(len(folder_list_dict['torrents'])):
                     deleteTorrent(
                         str(folder_list_dict['torrents'][i]['id']))
-                print(f"{Fore.GREEN}All torrents deleted successfully.")
+                console.print(
+                    "All torrents deleted successfully.", style="green")
                 break
             intermediate = [int(input_from_user)]
         except KeyboardInterrupt:
-            print(f"{Fore.RED}Exiting...")
+            console.print("Exiting...", style="red")
             exit()
         except ValueError:
             if "," in input_from_user:
@@ -248,16 +252,16 @@ def newDelete():
                 first, second = input_from_user.split('-')
                 intermediate = [i for i in range(int(first), int(second)+1)]
             else:
-                print(f"{Fore.RED}Invalid input. Try again...")
+                console.print("Invalid input. Try again...", style="red")
                 continue
         for item in intermediate:
             if (item-1) >= 0 and (item-1) < len(folder_list_dict['torrents']):
                 deleteTorrent(str(folder_list_dict['torrents'][item-1]['id']))
-                print(
-                    f"Deleted: {Fore.GREEN}{folder_list_dict['torrents'][item-1]['title']} "
-                    f"{Fore.CYAN}{folder_list_dict['torrents'][item-1]['size']}")
+                console.print(
+                    f"Deleted: [green]{folder_list_dict['torrents'][item-1]['title']} [/green]"
+                    f"[cyan]{folder_list_dict['torrents'][item-1]['size']}[/cyan]")
             else:
-                print(f"{Fore.RED}Invalid input.")
+                console.print("Invalid input.", style="red")
         break
 
 
@@ -275,7 +279,7 @@ def fetch_links_after_add():
         name = item['name']
         if name[:50] == torrent_title[:50]:
             folderID = item['id']
-            print(f'├──{Fore.CYAN}{Style.DIM}📁{name}')
+            console.print(f'[bold cyan]📁{name}[/bold cyan]')
             folderContent(folderID)
 
 
@@ -307,20 +311,24 @@ def acive_torrrent_delete():
             active_torrent_name = activeTorrents[i]['name']
             active_torrent_size = str(
                 round(int(activeTorrents[i]['size']) / 1024 / 1024, 2)) + ' MB'
-            print(active_torrent_name,
-                  active_torrent_size)
+            table = Table(show_header=True, header_style="bold magenta")
+            table.add_column("Torrent Name")
+            table.add_column("Size", justify="center")
+            table.add_row(active_torrent_name, active_torrent_size)
+            console.print(table)
             user_input = input(
                 "Do you want to delete this active torrent? y/n\n")
             if user_input.lower() == 'y':
                 deleteActiveTorrent(active_torrent_id)
     else:
-        print(f"{Fore.GREEN}No active torrents found.")
+        console.print("No active torrents found.", style="green")
 
 
 def activeTorrentProgress():
     activeTorrents = active_torrent_list()
     if len(activeTorrents) == 0:
-        print(f"{Fore.GREEN}All downloads finished! there are no active torrents.")
+        console.print(
+            "All downloads finished! there are no active torrents.", style="green")
         return True
     else:
         for i in range(len(activeTorrents)):
@@ -342,23 +350,22 @@ def activeTorrentProgress():
                         seeders = d['stats']['seeders']
                         leechers = d['stats']['leechers']
                         progressPercentage = d['progress']
+                        print(f'{" "*100 }', end='\r')
                         if progressPercentage == 101:
-                            sys.stdout.write(
-                                f'\r{name} {size} {ddlRate} Q{quality} S{seeders} L{leechers} Finished \n')
+                            print(
+                                f'{name} {size} {ddlRate} Q{quality} S{seeders} L{leechers} Finished')
                             return True
                         else:
                             bar, percents = progress(progressPercentage, 101)
-                            sys.stdout.write(
-                                f'\r{name[:50]}[{Fore.GREEN}{bar}{Style.RESET_ALL}] {Fore.MAGENTA}{percents}% {size} {ddlRate} S{seeders}')
-                            sys.stdout.flush()
+                            console.print(
+                                f'{name[:50]}[[green]{bar}[/green]] [magenta]{percents}% {size} {ddlRate} S{seeders}[/magenta]', end='\r')
                         time.sleep(2)
 
                 except KeyError:
-                    sys.stdout.write('\rCollecting Seeds...')
-                    sys.stdout.flush()
+                    print('Collecting Seeds...', end='\r')
                     time.sleep(2)
                 except KeyboardInterrupt:
-                    print(f"\n{Fore.RED}Exiting...")
+                    console.print("\nExiting...", style="red")
                     exit()
                 except:
                     pass
@@ -384,12 +391,12 @@ def folderContent(FID):
         # only display stuff greater than 1 MB
         if (round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)) > 1.0:
             sharedURL = fetchFileLink(fileID)
-            print(f'│  ├──{Fore.CYAN}📓{filename} {size}',
-                  f'│  │  {Fore.GREEN}└──🔗{sharedURL}', sep='\n')
+            console.print(f'[cyan]  📓{filename} {size}[/cyan]')
+            console.print(f'[green]    🔗{sharedURL}[/green]')
             # Clickable link
             # text = "LINK"
             # target = sharedURL
-            # print(f'│  ├──{filename} {size}',
+            # print(f'{filename} {size}',
             #       f"\u001b]8;;{target}\u001b\\{text}\u001b]8;;\u001b\\")
 
 
@@ -431,9 +438,10 @@ def DownloadTorrentFromWishlist(fileid):
         print("Torrent is added from wishlist")
         activeTorrentProgress()
     if r.json()['result'] == 'not_enough_space_added_to_wishlist':
-        print(f"{Fore.RED}Error: There is not enough space.")
+        console.print("Error: There is not enough space.", style="red")
     if r.json()['result'] == 'queue_full_added_to_wishlist':
-        print(f"{Fore.RED}Error: There are some active downloads going.")
+        console.print(
+            "Error: There are some active downloads going.", style="red")
 
 
 def getWishlistItemsList():
@@ -447,7 +455,7 @@ def getWishlistItemsList():
     if r.json()['result'] is True:
         wishlist = r.json()['account']['wishlist']
         if len(wishlist) < 1:
-            print(f"{Fore.RED}The list is empty. Exiting...")
+            console.print("The list is empty. Exiting...", style="magenta")
             exit()
         wishlist_dict = {
             'wishlist_torrents': []
@@ -518,7 +526,6 @@ def loginCheck():
 
 
 def exit():
-    deinit()
     sys.exit()
 
 
@@ -561,16 +568,20 @@ def main():
                     elif user_input == 3:
                         exit()
                     else:
-                        print(f"{Fore.RED}Invalid Input.")
+                        console.print("Invalid Input.", style="red")
                 except ValueError:
-                    print(f"{Fore.RED}Invlid input")
+                    console.print("Invlid input", style="red")
                 except KeyboardInterrupt:
-                    print(f"{Fore.RED}Exiting...")
+                    console.print("Exiting...", style="red")
                     exit()
         else:
-            print(f"{Fore.MAGENTA}Wishlist is empty. Exiting...")
+            console.print("Wishlist is empty. Exiting...", style="magenta")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        console.print("\nExiting...", style="red")
+        exit()
     exit()

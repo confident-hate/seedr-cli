@@ -95,11 +95,9 @@ MEMBERSHIP                         NON-PREMIUM
 BANDWIDTH USED                40.23 TB
 COUNTRY                                <REDACTED>
 5.3 GB/8.0 GB used.
-root
-│
-├──📁<Folder Name REDACTED> 1018.27 MB
-│    ├──📓<File Name REDACTED> 1018.27 MB
-│    │    └──🔗https://fr.seedr.cc/ff_get/743824252/<REDACTED>
+📁<Folder Name REDACTED> 1018.27 MB
+  📓<File Name REDACTED> 1018.27 MB
+    🔗https://fr.seedr.cc/ff_get/743824252/<REDACTED>
 
 Checking wishlist items: 
 Wishlist is empty

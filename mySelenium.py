@@ -3,7 +3,7 @@ from selenium import webdriver
 
 
 def call_me_niggas():
-    driver = webdriver.Firefox()
+    driver = webdriver.Firefox(service_log_path='/dev/null')
     driver.get("https://www.seedr.cc/")
     driver.find_element_by_link_text("Login").click()
     initial_cookies = driver.get_cookies()

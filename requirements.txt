@@ -1,6 +1,5 @@
 bs4
-pickle
-colorama
+rich
 requests
 selenium
 argparse

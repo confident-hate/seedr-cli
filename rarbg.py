@@ -73,7 +73,8 @@ def img2txt():
 
 def solveCaptcha():
     global driver
-    driver = webdriver.Firefox(options=options, firefox_profile=FFprofile)
+    driver = webdriver.Firefox(
+        options=options, firefox_profile=FFprofile, service_log_path='/dev/null')
     driver.implicitly_wait(10)
     driver.get('https://rarbgtorrents.org/torrents.php')
     solution = img2txt()
