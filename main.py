@@ -9,6 +9,7 @@ import rarbg
 import pickle
 import base64
 import hashlib
+import pyperclip
 import argparse
 import requests
 import bencodepy
@@ -381,6 +382,7 @@ def folderContent(FID):
     newRequest = s.post(url, params=PARAMS, data=DATA, headers=headr)
     JSONSTATS = newRequest.json()
     filelist = JSONSTATS['files']
+    clip = ''
     for file in range(len(filelist)):
         filename = JSONSTATS['files'][file]['name']
         size = str(
@@ -392,12 +394,15 @@ def folderContent(FID):
         if (round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)) > 1.0:
             sharedURL = fetchFileLink(fileID)
             console.print(f'[cyan]  📓{filename} {size}[/cyan]')
-            console.print(f'[green]    🔗{sharedURL}[/green]')
+            print(f'    🔗{sharedURL}')
+            clip += f'{sharedURL}\n'
+            # console.print(f'[green]    🔗{sharedURL}[/green]')
             # Clickable link
             # text = "LINK"
             # target = sharedURL
             # print(f'{filename} {size}',
             #       f"\u001b]8;;{target}\u001b\\{text}\u001b]8;;\u001b\\")
+    pyperclip.copy(clip)
 
 
 def fetchFileLink(fileid):

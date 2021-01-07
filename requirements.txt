@@ -3,5 +3,6 @@ rich
 requests
 selenium
 argparse
+pyperclip
 bencodepy
 pytesseract
