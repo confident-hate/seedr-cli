@@ -7,7 +7,11 @@ A tool to ease tasks on seedr.cc
 
 
 ## Installation
-Clone the repository
+
+First install firefox web browser on your machine.
+
+**For LINUX:**
+
 ```bash
 $ git clone https://github.com/confident-hate/seedr-cli.git
 $ cd seedr-cli
@@ -16,7 +20,16 @@ $ sudo bash install.sh --install
 ```
 To uninstall seedr, execute the command `seedr --uninstall`
 
-Also you need to install firefox web browser on your machine.
+**For Windows:**
+
+Install [tesseract-ocr](https://github.com/UB-Mannheim/tesseract/wiki) for rarbg usage(optional). And make sure python, geckodriver and tesseract are in environment variable PATH.
+
+```powershell
+PS D:\> git clone https://github.com/confident-hate/seedr-cli.git
+PS D:\> cd .\seedr-cli\
+PS D:\seedr-cli> pip install -r requirements.txt
+PS D:\seedr-cli> python .\main.py -h
+```
 
 ## Features
   * Add/Delete torrents 

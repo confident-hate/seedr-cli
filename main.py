@@ -84,31 +84,30 @@ def magnetCheck(stringPassed):
 
 def addTorrent(magnet):
     global torrent_title
-    url = 'https://www.seedr.cc/actions.php'
+    url = 'https://www.seedr.cc/task'
     if magnet[:4] == 'http':
         DATA = {
             'torrent_url': magnet,
-            'folder_id': '-1'
+            'folder_id': '0',
+            'type': "torrent"
         }
     else:
         DATA = {
             'torrent_magnet': magnet,
-            'folder_id': '-1'
+            'folder_id': '0',
+            'type': "torrent"
         }
 
-    PARAMS = {
-        'action': 'add_torrent'
-    }
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, data=DATA, headers=headr)
     print(r.status_code, r.reason)
     try:
         torrent_title = r.json()['title']
         print('Added: ', torrent_title)
     except KeyError:
         out = r.json()
-        if out['result'] == 'not_enough_space_added_to_wishlist' or out['result'] == 'queue_full_added_to_wishlist':
-            console.print(f"Error: {out['result']}", style="red")
+        print(out)
+        if out['reason_phrase'] == 'not_enough_space_added_to_wishlist' or out['reason_phrase'] == 'queue_full_added_to_wishlist':
+            console.print(f"Error: {out['reason_phrase']}", style="red")
             console.print(
                 f"[cyan]{out['wt']['title']}[/cyan] is added to wishlist.")
             exit()
@@ -117,38 +116,30 @@ def addTorrent(magnet):
 
 
 def stats():
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    PARAMS2 = {'action': 'get_settings'}
-    DATA = {
-        'content_type': 'folder',
-        'content_id': '0'
-    }
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    print(r.status_code, r.reason)
-
-    r2 = s.post(url, params=PARAMS2, data=DATA, headers=headr)
-    settingsJSON = r2.json()
+    urlSettings = 'https://www.seedr.cc/account/settings'
+    urlItems = 'https://www.seedr.cc/fs/folder/0/items'
+    settingsJSON = s.get(urlSettings).json()
     userID = str(settingsJSON['account']['user_id'])
     isPremium = settingsJSON['account']['package_name']
-    bandwidth_used = str(
-        round(int(settingsJSON['account']['bandwidth_used']) / 1024 / 1024 / 1024 / 1024, 2)) + ' TB'
+    # bandwidth_used = str(
+    #     round(int(settingsJSON['account']['bandwidth_used']) / 1024 / 1024 / 1024 / 1024, 2)) + ' TB'
     email = settingsJSON['account']['email']
     country = settingsJSON['country']
-    JSONSTATS = r.json()
+    JSONSTATS = s.get(urlItems).json()
     space_max = str(
         int(JSONSTATS['space_max']) / 1024 / 1024 / 1024) + ' GB'
     space_used = str(
         round(int(JSONSTATS['space_used']) / 1024 / 1024 / 1024, 2)) + ' GB'
 
+    # print("USER ".ljust(30)+email, "USER ID ".ljust(30)+userID, "MEMBERSHIP ".ljust(30)+isPremium,
+    #       "BANDWIDTH USED ".ljust(30)+bandwidth_used, "COUNTRY ".ljust(30)+country, sep='\n')
     print("USER ".ljust(30)+email, "USER ID ".ljust(30)+userID, "MEMBERSHIP ".ljust(30)+isPremium,
-          "BANDWIDTH USED ".ljust(30)+bandwidth_used, "COUNTRY ".ljust(30)+country, sep='\n')
+          "COUNTRY ".ljust(30)+country, sep='\n')
     print(space_used + '/' + space_max + ' used.')
     list = JSONSTATS['folders']
     if len(list) > 0:
         for item in range(len(list)):
-            name = JSONSTATS['folders'][item]['name']
+            name = JSONSTATS['folders'][item]['path']
             size = str(
                 round(int(JSONSTATS['folders'][item]['size']) / 1024 / 1024, 2)
             ) + ' MB'
@@ -192,13 +183,8 @@ def plural(num):
 
 
 def newDelete():
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    DATA = {
-        'content_type': 'folder',
-        'content_id': '0'
-    }
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    url = 'https://www.seedr.cc/fs/folder/0/items'
+    r = s.get(url, headers=headr)
     print(r.status_code, r.reason)
     TorrList = r.json()['folders']
     if len(TorrList) < 1:
@@ -213,7 +199,7 @@ def newDelete():
     table.add_column("Size", justify="center")
     table.add_column("Time", justify="center")
     for item in range(len(TorrList)):
-        name = TorrList[item]['name'][:75]
+        name = TorrList[item]['path'][:75]
         size = str(
             round(int(TorrList[item]['size']) / 1024 / 1024, 2)
         ) + ' MB'
@@ -267,17 +253,12 @@ def newDelete():
 
 
 def fetch_links_after_add():
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    DATA = {
-        'content_type': 'folder',
-        'content_id': '0'
-    }
+    url = 'https://www.seedr.cc/fs/folder/0/items'
     time.sleep(5)
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.get(url, headers=headr)
     list = r.json()['folders']
     for item in list:
-        name = item['name']
+        name = item['path']
         if name[:50] == torrent_title[:50]:
             folderID = item['id']
             console.print(f'[bold cyan]📁{name}[/bold cyan]')
@@ -294,14 +275,8 @@ def progress(count, total):
 
 
 def active_torrent_list():
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    DATA = {
-        'content_type': 'folder',
-        'content_id': '0'
-    }
-    response = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    return response.json()['torrents']
+    url = 'https://www.seedr.cc/fs/folder/0/items'
+    return s.get(url).json()['torrents']
 
 
 def acive_torrrent_delete():
@@ -373,13 +348,8 @@ def activeTorrentProgress():
 
 
 def folderContent(FID):
-    DATA = {
-        'content_type': 'folder',
-        'content_id': FID
-    }
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    newRequest = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    url = f'https://www.seedr.cc/fs/folder/{FID}/items'
+    newRequest = s.get(url, headers=headr)
     JSONSTATS = newRequest.json()
     filelist = JSONSTATS['files']
     clip = ''
@@ -388,7 +358,7 @@ def folderContent(FID):
         size = str(
             round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)
         ) + ' MB'
-        fileID = str(JSONSTATS['files'][file]['folder_file_id'])
+        fileID = str(JSONSTATS['files'][file]['id'])
 
         # only display stuff greater than 1 MB
         if (round(int(JSONSTATS['files'][file]['size']) / 1024 / 1024, 2)) > 1.0:
@@ -406,62 +376,45 @@ def folderContent(FID):
 
 
 def fetchFileLink(fileid):
-    url = 'https://www.seedr.cc/content.php'
-    DATA = {
-        'folder_file_id': fileid
-    }
-    PARAMS = {'action': 'fetch_file'}
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    if (r.json()['result']) is True:
+    url = f'https://www.seedr.cc/download/file/{fileid}/url'
+    r = s.get(url, headers=headr)
+    if (r.json()['success']) is True:
         return r.json()['url']
     else:
         return False
 
 
 def removeItemfromWishlist(fileid):
-    url = 'https://www.seedr.cc/actions.php'
-    DATA = {
-        'id': fileid
-    }
-    PARAMS = {'action': 'remove_wishlist'}
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    if (r.json()['result']) is True:
+    url = f'https://www.seedr.cc/wishlist/{fileid}'
+    r = s.delete(url)
+    if (r.json()['success']) is True:
         print("File is removed from wishlist.")
 
 
 def DownloadTorrentFromWishlist(fileid):
-    url = 'https://www.seedr.cc/actions.php'
+    url = 'https://www.seedr.cc/task'
     DATA = {
         'wishlist_id': fileid
     }
-    PARAMS = {'action': 'add_torrent'}
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    if r.json()['result'] is True:
+    r = s.post(url, data=DATA, headers=headr)
+    if r.json()['reason_phrase'] is True:
         print("Torrent is added from wishlist")
         activeTorrentProgress()
-    if r.json()['result'] == 'not_enough_space_added_to_wishlist':
+    if r.json()['reason_phrase'] == 'not_enough_space_added_to_wishlist':
         console.print("Error: There is not enough space.", style="red")
-    if r.json()['result'] == 'queue_full_added_to_wishlist':
+    if r.json()['reason_phrase'] == 'queue_full_added_to_wishlist':
         console.print(
             "Error: There are some active downloads going.", style="red")
 
 
 def getWishlistItemsList():
     global wishlist_dict
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'get_settings'}
-    DATA = {
-        'lol': 'haha'  # I am not sure why requests is not working without data=
-    }
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
-    if r.json()['result'] is True:
-        wishlist = r.json()['account']['wishlist']
-        if len(wishlist) < 1:
-            console.print("The list is empty. Exiting...", style="magenta")
-            exit()
+    url = 'https://www.seedr.cc/account/settings'
+    wishlist = s.get(url).json()['account']['wishlist']
+    if len(wishlist) < 1:
+        console.print("The list is empty. Exiting...", style="magenta")
+        exit()
+    else:
         wishlist_dict = {
             'wishlist_torrents': []
         }
@@ -475,17 +428,14 @@ def getWishlistItemsList():
             }
             wishlist_dict['wishlist_torrents'].append(temp_dict)
         return True
-    else:
-        return False
 
 
 def deleteTorrent(folderid):
-    url = 'https://www.seedr.cc/actions.php'
-    PARAMS = {'action': 'delete'}
+    url = 'https://www.seedr.cc/fs/batch/delete'
     DATA = {
         'delete_arr': f'[{{"type":"folder","id":"{folderid}"}}]'
     }
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    r = s.post(url, data=DATA, headers=headr)
     if r.status_code == 200:
         return True
     else:
@@ -493,12 +443,12 @@ def deleteTorrent(folderid):
 
 
 def deleteActiveTorrent(user_torrent_id):
-    url = 'https://www.seedr.cc/actions.php'
-    PARAMS = {'action': 'delete'}
     DATA = {
-        'delete_arr': f'[{{"type":"torrent","id":"{user_torrent_id}"}}]'
+         'delete_arr': f'[{{"type":"torrent","id":"{user_torrent_id}"}}]'
     }
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    url = 'https://www.seedr.cc/fs/batch/delete'
+    r = s.post(url, data=DATA, headers=headr)
+
     if r.status_code == 200:
         return True
     else:
@@ -506,16 +456,10 @@ def deleteActiveTorrent(user_torrent_id):
 
 
 def loginCheck():
-    url = 'https://www.seedr.cc/content.php'
-    PARAMS = {'action': 'list_contents'}
-    DATA = {
-        'content_type': 'folder',
-        'content_id': '0'
-    }
-
-    r = s.post(url, params=PARAMS, data=DATA, headers=headr)
+    url = 'https://www.seedr.cc/account/settings'
+    r = s.get(url)
     try:
-        if r.json()['result'] == 'login_required':
+        if r.reason == 'Unauthorized':
             returned_cookie = mySelenium.call_me_niggas()
             pickle.dump(returned_cookie, open(
                 f'{home}/.config/seedr-cli/seedr.cookie', "wb"))
