@@ -105,7 +105,6 @@ def addTorrent(magnet):
         print('Added: ', torrent_title)
     except KeyError:
         out = r.json()
-        print(out)
         if out['reason_phrase'] == 'not_enough_space_added_to_wishlist' or out['reason_phrase'] == 'queue_full_added_to_wishlist':
             console.print(f"Error: {out['reason_phrase']}", style="red")
             console.print(
